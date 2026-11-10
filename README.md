@@ -4,6 +4,8 @@ A voice agent that answers unknown callers, checks their story against the live 
 
 Built at the Side Quest Hotline Vapi Hackathon. Demo video: [doorman-launch.mp4](doorman-launch.mp4).
 
+Website with a live text demo: https://doorman-umber.vercel.app (source in `site/`).
+
 ## How it works
 
 1. A call arrives on a Vapi phone number. The assistant asks who is calling and why.

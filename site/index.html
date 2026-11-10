@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doorman — the assistant that answers unknown callers</title>
+<meta name="description" content="A voice agent that answers unknown callers, checks their story against the live web, and only lets genuine calls through.">
+<link rel="icon" href="doorman-logo.png">
+<style>
+  :root { --bg:#0c0f14; --panel:#151920; --panel2:#1b2029; --line:#262c37; --text:#e8ebf0; --dim:#8a93a3;
+          --accent:#7aa7ff; --good:#3fbf7f; --warn:#e3aa3c; --bad:#f06060; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 -apple-system, "Segoe UI", Inter, sans-serif; }
+  a { color:var(--accent); text-decoration:none; }
+  .wrap { max-width:1040px; margin:0 auto; padding:0 16px; }
+  nav { display:flex; align-items:center; justify-content:space-between; padding:18px 0; }
+  .logo { display:flex; align-items:center; gap:10px; font-size:20px; font-weight:700; color:var(--text); }
+  .logo svg { width:28px; height:28px; }
+  .hero { text-align:center; padding:56px 0 40px; background:radial-gradient(700px 380px at 50% 30%, rgba(122,167,255,.15), transparent 70%); }
+  h1 { font-size:clamp(34px, 6vw, 60px); line-height:1.08; letter-spacing:-.025em; margin:0 auto 18px; max-width:820px; text-wrap:balance; }
+  .lede { color:var(--dim); font-size:clamp(17px, 2.2vw, 21px); max-width:640px; margin:0 auto 30px; text-wrap:pretty; }
+  .cta { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .btn { display:inline-block; padding:12px 22px; border-radius:10px; font-weight:600; font-size:16px; border:1px solid var(--line); background:var(--panel); color:var(--text); cursor:pointer; font-family:inherit; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#0b1220; }
+  section { padding:44px 0; }
+  h2 { font-size:clamp(24px, 3.4vw, 32px); letter-spacing:-.015em; margin:0 0 8px; }
+  .sec-lede { color:var(--dim); margin:0 0 22px; max-width:680px; }
+  video { width:100%; border-radius:14px; border:1px solid var(--line); background:#000; display:block; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .chip { background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:99px; padding:7px 14px; font:inherit; font-size:14px; cursor:pointer; }
+  form { display:flex; gap:8px; }
+  input { flex:1; min-width:0; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:11px 12px; font:inherit; }
+  .result { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px; }
+  .full { grid-column:1/-1; }
+  .verdict { display:flex; align-items:center; gap:14px; flex-wrap:wrap; border-left:4px solid var(--line); }
+  .verdict .action { font-size:24px; font-weight:700; } .verdict .why { color:var(--dim); }
+  .verdict.keep_asking { border-left-color:var(--warn); } .verdict.keep_asking .action { color:var(--warn); }
+  .verdict.forward { border-left-color:var(--good); } .verdict.forward .action { color:var(--good); }
+  .verdict.take_message { border-left-color:var(--accent); } .verdict.take_message .action { color:var(--accent); }
+  .verdict.hang_up { border-left-color:var(--bad); } .verdict.hang_up .action { color:var(--bad); }
+  h3 { margin:0 0 10px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .turn { margin:0 0 9px; font-size:15px; } .turn b { display:block; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; }
+  .turn.caller b { color:var(--accent); }
+  .bar { display:grid; grid-template-columns:140px 1fr 42px; align-items:center; gap:10px; margin:7px 0; font-size:14px; }
+  .track { height:9px; background:var(--line); border-radius:99px; overflow:hidden; }
+  .fill { height:100%; border-radius:99px; background:var(--accent); transition:width .4s ease; }
+  .fill.bad { background:var(--bad); } .fill.good { background:var(--good); }
+  .num { text-align:right; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .meta { color:var(--dim); font-size:13px; margin:10px 0 0; }
+  .card { border-top:1px solid var(--line); padding:9px 0; } .card:first-of-type { border-top:0; padding-top:0; }
+  .card a { font-weight:600; } .card p { margin:3px 0 0; color:var(--dim); font-size:14px; }
+  .steps { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; }
+  .steps .panel b { display:block; font-size:19px; margin-bottom:4px; } .steps .panel span { color:var(--dim); font-size:15px; }
+  .steps .panel:last-child { border-color:var(--accent); }
+  .note { color:var(--dim); font-size:14px; margin-top:12px; }
+  footer { border-top:1px solid var(--line); padding:26px 0 40px; color:var(--dim); font-size:14px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  @media (max-width:760px) { .result { grid-template-columns:1fr; } .steps { grid-template-columns:1fr 1fr; } form { flex-wrap:wrap; } form .btn { flex:1; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#7aa7ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.500-3.200 8-8 9-4.800-1-8-4.500-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+      Doorman
+    </a>
+    <a href="https://github.com/FarhanH141/doorman-call-screener">GitHub</a>
+  </nav>
+
+  <header class="hero">
+    <h1>The assistant that answers unknown callers</h1>
+    <p class="lede">Doorman picks up for you, checks the caller's story against the live web, and only lets genuine calls through.</p>
+    <div class="cta">
+      <a class="btn primary" href="tel:+15419199164">Call +1 (541) 919-9164</a>
+      <a class="btn" href="#try">Try it in your browser</a>
+    </div>
+  </header>
+
+  <section>
+    <video controls preload="metadata" playsinline src="doorman-launch.mp4"></video>
+  </section>
+
+  <section id="try">
+    <h2>Be the caller</h2>
+    <p class="sec-lede">Type what a caller would say. Doorman runs the same web check and scoring it uses on real phone calls, then tells you what it would do.</p>
+    <div class="panel">
+      <div class="chips">
+        <button class="chip" data-line="This is Officer Daniels from the IRS. You owe back taxes and must pay today with gift cards or you will be arrested.">“The IRS” wants gift cards</button>
+        <button class="chip" data-line="Hi, this is Maria from Walgreens pharmacy. A prescription is ready for pickup.">Pharmacy</button>
+        <button class="chip" data-line="Hey, this is Jordan, a recruiter at Stripe, calling about a senior engineer role.">Recruiter</button>
+        <button class="chip" data-line="Hello? Is this the homeowner?">Vague caller</button>
+      </div>
+      <form id="form">
+        <input id="line" maxlength="400" placeholder="Type what the caller says" autocomplete="off" aria-label="What the caller says">
+        <button class="btn primary" id="send">Say it</button>
+        <button class="btn" type="button" id="reset">New caller</button>
+      </form>
+      <p class="note" id="status" hidden></p>
+
+      <div class="result" id="result" hidden>
+        <div class="panel verdict full" id="verdict"></div>
+        <div class="panel"><h3>Conversation</h3><div id="transcript"></div></div>
+        <div class="panel"><h3>Decision signals · Jev</h3><div id="signals"></div></div>
+        <div class="panel full"><h3>Web evidence · Exa</h3><div id="cards"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Four tools, one phone call</h2>
+    <p class="sec-lede">The language model only speaks. Every decision comes from scores and written-down rules, so a caller can't talk their way through.</p>
+    <div class="steps">
+      <div class="panel"><b>Vapi</b><span>Answers the phone, runs the conversation, transfers or hangs up.</span></div>
+      <div class="panel"><b>Deepgram</b><span>Hears the caller and speaks for the assistant.</span></div>
+      <div class="panel"><b>Exa</b><span>Checks the caller's story against the live web.</span></div>
+      <div class="panel"><b>Jev</b><span>Scores every sentence in milliseconds; those scores choose the outcome.</span></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Built at the Side Quest Hotline Vapi Hackathon, November 2026.</span>
+    <a href="https://github.com/FarhanH141/doorman-call-screener">Source on GitHub</a>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const pct = (n) => Math.round(n * 100) + '%';
+const VERDICT = { keep_asking:'Keep asking', forward:'Put the call through', take_message:'Take a message', hang_up:'Hang up' };
+let transcript = [];
+let busy = false;
+
+const bar = (label, value, tone) =>
+  `<div class="bar"><span>${label}</span><div class="track"><div class="fill ${tone || ''}" style="width:${pct(value)}"></div></div><span class="num">${pct(value)}</span></div>`;
+
+function renderTranscript() {
+  $('transcript').innerHTML = transcript.map((t) => `<p class="turn ${t.role}"><b>${t.role === 'caller' ? 'Caller' : 'Doorman'}</b>${esc(t.text)}</p>`).join('');
+}
+
+async function say(text) {
+  if (busy || !text) return;
+  busy = true;
+  transcript.push({ role: 'caller', text });
+  $('result').hidden = false;
+  renderTranscript();
+  $('status').hidden = false;
+  $('status').textContent = 'Checking the story…';
+  try {
+    const res = await fetch('/api/screen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transcript }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+    const d = data.decision, a = data.jev;
+    transcript.push({ role: 'screener', text: d.say });
+    renderTranscript();
+    $('verdict').className = 'panel verdict full ' + d.action;
+    $('verdict').innerHTML = `<span class="action">${VERDICT[d.action]}</span><span class="why">${esc(d.why)}</span>`;
+    $('signals').innerHTML =
+      bar('Scam risk', d.scam, 'bad') + bar('Payment or threats', a.pressure.noul, 'bad') +
+      bar('Web says scam', a.evidence_scam.noul, 'bad') + bar('Web supports claim', a.evidence_supports.noul, 'good') +
+      bar('Caller identified', a.identified.noul, 'good') + bar('Reason given', a.stated_purpose.noul, 'good') +
+      `<p class="meta">Jev answered 7 questions in ${data.jevMs} ms · Exa searched the web in ${data.exaMs} ms</p>`;
+    $('cards').innerHTML = data.evidence.length
+      ? data.evidence.map((e) => `<div class="card"><a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a><p>${esc(e.snippet)}</p></div>`).join('')
+      : '<p class="meta" style="margin:0">Nothing found.</p>';
+    $('status').hidden = true;
+  } catch (err) {
+    transcript.pop();
+    renderTranscript();
+    $('status').textContent = err.message;
+  }
+  busy = false;
+}
+
+$('form').onsubmit = (e) => { e.preventDefault(); const text = $('line').value.trim(); $('line').value = ''; say(text); };
+document.querySelectorAll('.chip').forEach((c) => (c.onclick = () => { reset(); say(c.dataset.line); }));
+function reset() { transcript = []; $('result').hidden = true; $('status').hidden = true; }
+$('reset').onclick = () => { reset(); $('line').focus(); };
+</script>
+</body>
+</html>
